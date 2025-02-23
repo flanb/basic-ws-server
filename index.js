@@ -1,18 +1,27 @@
 import { WebSocketServer } from "ws";
 
-const server = new WebSocketServer({ port: 8080 });
+const server = new WebSocketServer({ port: process.env.PORT || 8080 });
 
-server.on("connection", (ws) => {
+function handleConnection(socket) {
   console.log("Client connected");
 
-  ws.on("message", (message) => {
+  socket.on("message", (message) => {
     console.log(`Received: ${message}`);
-    ws.send(`Echo: ${message}`);
+    // send to all clients
+    server.clients.forEach((client) => {
+      if (client.readyState === WebSocketServer.OPEN) {
+        client.send(message);
+      }
+    });
   });
 
-  ws.on("close", () => {
+  socket.on("close", () => {
     console.log("Client disconnected");
   });
-});
+}
 
-console.log("WebSocket server is running on ws://localhost:8080");
+server.on("connection", handleConnection);
+
+server.on("listening", () => {
+  console.log(`Server started on port ${server.address().port}`);
+});
